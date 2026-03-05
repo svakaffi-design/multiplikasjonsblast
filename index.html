@@ -173,92 +173,77 @@
 </div>
 
 <script>
-  /* ── Firebase config ── */
-  const FB_URL = 'https://multiplikasjonsblast-default-rtdb.europe-west1.firebasedatabase.app';
-  const PLAYERS_PATH = '/players';
+  const FB   = 'https://multiplikasjonsblast-default-rtdb.europe-west1.firebasedatabase.app';
+  const PATH = '/players';
 
-  /* ── State ── */
   let score=0, streak=0, lives=3, multiplier=1;
   let baseRate=0.5, currentRate=0.5;
-  let boostActive=false, boostTimer=null, tickInterval=null, lbInterval=null;
+  let boostActive=false, boostTimer=null, tickInterval=null;
   let tickCount=0;
   let numA, numB, correctAnswer, answerLocked=false;
   let playerName='', playerId='';
   let prevRank=null;
+  let lbSnapshot={};
+  let sseConn=null;
 
-  /* ── Particles ── */
+  /* Particles */
   const syms=['×','+','÷','=','²','∑','π','√'];
   for(let i=0;i<14;i++){
     const p=document.createElement('div'); p.className='particle';
     p.textContent=syms[Math.floor(Math.random()*syms.length)];
-    p.style.left=Math.random()*100+'vw';
-    p.style.top=Math.random()*100+'vh';
-    p.style.animationDelay=Math.random()*4+'s';
-    p.style.fontSize=(0.8+Math.random()*1.4)+'rem';
+    p.style.left=Math.random()*100+'vw'; p.style.top=Math.random()*100+'vh';
+    p.style.animationDelay=Math.random()*4+'s'; p.style.fontSize=(0.8+Math.random()*1.4)+'rem';
     p.style.animationDuration=(3+Math.random()*4)+'s';
     document.body.appendChild(p);
   }
 
-  /* ── Name submit ── */
-  document.getElementById('nameInput').addEventListener('keydown', e=>{ if(e.key==='Enter') handleNameSubmit(); });
+  document.getElementById('nameInput').addEventListener('keydown',e=>{ if(e.key==='Enter') handleNameSubmit(); });
 
   function handleNameSubmit(){
     const v=document.getElementById('nameInput').value.trim();
     if(!v){ document.getElementById('nameInput').focus(); return; }
     playerName=v.substring(0,16);
-    // Sanitize for Firebase key
     playerId='p_'+Date.now()+'_'+Math.random().toString(36).slice(2,6);
     document.getElementById('nameOverlay').classList.add('hidden');
     document.getElementById('hudPlayer').textContent='👤 '+playerName;
     startGame();
   }
 
-  /* ── Game ── */
   function startGame(){
     score=0; streak=0; lives=3; multiplier=1;
     currentRate=baseRate; boostActive=false; tickCount=0; prevRank=null;
-    clearTimeout(boostTimer); clearInterval(tickInterval); clearInterval(lbInterval);
+    clearTimeout(boostTimer); clearInterval(tickInterval);
     document.getElementById('endOverlay').classList.add('hidden');
     document.getElementById('scoreDisplay').textContent='0';
     updateMultiplierBadge(); updateStreak();
-    tickInterval=setInterval(tick, 100);
-    subscribeLeaderboard();
-    fetchLeaderboardOnce();
+    tickInterval=setInterval(tick,100);
+    connectSSE();
     newQuestion();
   }
+  function restartGame(){ startGame(); }
 
-  function restartGame(){
-    startGame();
-  }
-
-  let saveThrottle=null;
   function tick(){
-    score += currentRate*multiplier*0.1;
+    score+=currentRate*multiplier*0.1;
     document.getElementById('scoreDisplay').textContent=Math.floor(score).toLocaleString('no');
     document.getElementById('speedFill').style.width=Math.min(100,(currentRate/8)*100)+'%';
     tickCount++;
     if(tickCount%20===0) saveScore();
   }
 
-  /* ── Questions ── */
   function newQuestion(){
     answerLocked=false;
-    numA=Math.floor(Math.random()*10)+1;
-    numB=Math.floor(Math.random()*10)+1;
+    numA=Math.floor(Math.random()*10)+1; numB=Math.floor(Math.random()*10)+1;
     correctAnswer=numA*numB;
     document.getElementById('numA').textContent=numA;
     document.getElementById('numB').textContent=numB;
     if(!boostActive) currentRate=baseRate+(score/200);
-    const container=document.getElementById('answersContainer');
-    container.innerHTML='';
+    const c=document.getElementById('answersContainer'); c.innerHTML='';
     genOptions(correctAnswer).forEach(val=>{
       const btn=document.createElement('button');
       btn.className='answer-btn'; btn.textContent=val;
-      btn.onclick=()=>handleAnswer(val,btn);
-      container.appendChild(btn);
+      btn.onclick=()=>handleAnswer(val,btn); c.appendChild(btn);
     });
   }
-
   function genOptions(correct){
     const s=new Set([correct]);
     const d=[-6,-5,-4,-3,-2,-1,1,2,3,4,5,6,7,8,9,10,11,12];
@@ -279,156 +264,150 @@
       currentRate=(baseRate+(score/200))*4;
       clearTimeout(boostTimer);
       boostTimer=setTimeout(()=>{boostActive=false;currentRate=baseRate+(score/200);},4000);
-      showFloatScore(btn,`+${Math.ceil(currentRate*multiplier*5)}`);
+      showFloatScore(btn,'+'+Math.ceil(currentRate*multiplier*5));
       if(streak>1&&streak%2===0) showToast(streak>=5?'ULTRA COMBO! 💥':streak>=3?'TRIPPEL! ⚡':'DOBBEL! 🎯','combo');
       document.getElementById('scoreDisplay').classList.add('boosted');
       setTimeout(()=>document.getElementById('scoreDisplay').classList.remove('boosted'),400);
       saveScore();
       setTimeout(newQuestion,320);
     } else {
-      streak=0; lives--; multiplier=1;
-      boostActive=false; currentRate=baseRate+(score/200);
-      clearTimeout(boostTimer);
+      streak=0; lives--; multiplier=1; boostActive=false;
+      currentRate=baseRate+(score/200); clearTimeout(boostTimer);
       updateMultiplierBadge(); updateStreak();
       btn.classList.add('wrong');
       document.getElementById('equationCard').classList.add('shake');
       setTimeout(()=>document.getElementById('equationCard').classList.remove('shake'),450);
       document.querySelectorAll('.answer-btn').forEach(b=>{if(parseInt(b.textContent)===correctAnswer)b.classList.add('correct');});
-      if(lives<=0){
-        clearInterval(tickInterval);
-        saveScore(true);
-        setTimeout(showGameOver,700);
-      } else {
-        setTimeout(newQuestion,820);
-      }
+      if(lives<=0){ clearInterval(tickInterval); saveScore(true); setTimeout(showGameOver,700); }
+      else setTimeout(newQuestion,820);
     }
   }
 
-  /* ── Firebase REST API ── */
+  /* Firebase REST */
   async function saveScore(final=false){
     if(!playerName||!playerId) return;
     try{
-      await fetch(`${FB_URL}${PLAYERS_PATH}/${playerId}.json`, {
-        method:'PUT',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({
-          name: playerName,
-          score: Math.floor(score),
-          active: !final,
-          ts: Date.now()
-        })
+      await fetch(FB+PATH+'/'+playerId+'.json',{
+        method:'PUT', headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({name:playerName,score:Math.floor(score),active:!final})
       });
-    }catch(e){ console.warn('saveScore error:',e); }
+    }catch(e){ console.warn('save error',e); }
   }
 
-  async function removePlayerFromDB(){
+  async function deletePlayer(){
     if(!playerId) return;
+    try{ await fetch(FB+PATH+'/'+playerId+'.json',{method:'DELETE'}); }catch(e){}
+  }
+
+  /* Single SSE connection – maintain local snapshot */
+  function connectSSE(){
+    if(sseConn){ try{sseConn.close();}catch(e){} sseConn=null; }
+    setLbStatus('Kobler til…',false);
+
     try{
-      await fetch(`${FB_URL}${PLAYERS_PATH}/${playerId}.json`,{method:'DELETE'});
-    }catch(e){}
+      sseConn=new EventSource(FB+PATH+'.json');
+    }catch(e){ setLbStatus('SSE ikke støttet',true); return; }
+
+    sseConn.addEventListener('put',e=>{
+      try{
+        const msg=JSON.parse(e.data);
+        if(msg.path==='/'){
+          lbSnapshot = msg.data || {};
+        } else {
+          const key=msg.path.replace(/^\//,'');
+          if(msg.data===null){ delete lbSnapshot[key]; }
+          else { lbSnapshot[key]=msg.data; }
+        }
+        renderFromSnapshot();
+        setLbStatus('● Sanntid',false);
+      }catch(err){ console.warn('SSE put error',err); }
+    });
+
+    sseConn.addEventListener('patch',e=>{
+      try{
+        const msg=JSON.parse(e.data);
+        if(msg.data){
+          Object.entries(msg.data).forEach(([k,v])=>{
+            if(v===null) delete lbSnapshot[k];
+            else lbSnapshot[k]=Object.assign({},lbSnapshot[k],v);
+          });
+          renderFromSnapshot();
+        }
+      }catch(err){}
+    });
+
+    sseConn.onerror=()=>{
+      setLbStatus('Kobler til på nytt…',true);
+      try{sseConn.close();}catch(e){}
+      sseConn=null;
+      setTimeout(connectSSE,3000);
+    };
   }
 
-  function subscribeLeaderboard(){
-    // Simple polling only – reliable and no SSE conflicts
-    clearInterval(lbInterval);
-    lbInterval=setInterval(fetchLeaderboardOnce, 2500);
-  }
-
-  async function fetchLeaderboardOnce(){
-    try{
-      const res=await fetch(`${FB_URL}${PLAYERS_PATH}.json`);
-      if(!res.ok) throw new Error('HTTP '+res.status);
-      const data=await res.json();
-      processLeaderboard(data);
-      setLbStatus('Live · oppdateres hvert 2s', false);
-    }catch(e){
-      setLbStatus('Tilkoblingsfeil', true);
-    }
-  }
-
-  function processLeaderboard(data){
-    if(!data){
-      document.getElementById('lbList').innerHTML='<div class="lb-empty">Ingen spillere ennå</div>';
-      document.getElementById('lbSub').textContent='Venter på spillere…';
-      return;
-    }
-    const cutoff=Date.now()-300000; // 5 minutter
-    const entries=Object.entries(data)
+  function renderFromSnapshot(){
+    const entries=Object.entries(lbSnapshot)
       .map(([key,v])=>({key,...v}))
-      .filter(e=>e.ts>cutoff)
-      .sort((a,b)=>b.score-a.score);
-    renderLeaderboard(entries);
-    const active=entries.filter(e=>e.active).length;
-    document.getElementById('lbSub').textContent=
-      active===0?'Ingen aktive nå':active===1?'1 spiller aktiv':active+' spillere aktive';
-  }
+      .filter(e=>e.active===true)
+      .sort((a,b)=>(b.score||0)-(a.score||0));
 
-  function renderLeaderboard(entries){
-    const list=document.getElementById('lbList');
-    if(!entries.length){
-      list.innerHTML='<div class="lb-empty">Ingen spillere ennå</div>'; return;
-    }
-    const top=entries[0]?.score||1;
     const myRank=entries.findIndex(e=>e.key===playerId)+1;
     if(prevRank!==null&&myRank>0&&myRank<prevRank) showToast('🏆 Du er nå #'+myRank+' på lista!','rankup');
     if(myRank>0) prevRank=myRank;
 
+    const list=document.getElementById('lbList');
+    if(!entries.length){
+      list.innerHTML='<div class="lb-empty">Ingen aktive spillere</div>';
+      document.getElementById('lbSub').textContent='Venter på spillere…';
+      return;
+    }
+    document.getElementById('lbSub').textContent=entries.length===1?'1 spiller aktiv':entries.length+' spillere aktive';
+    const top=entries[0]?.score||1;
     list.innerHTML=entries.slice(0,10).map((e,i)=>{
       const rank=i+1, isMe=e.key===playerId;
       const rc=rank===1?'g':rank===2?'s':rank===3?'b':'';
       const ri=rank===1?'🥇':rank===2?'🥈':rank===3?'🥉':rank;
-      const bw=Math.round((e.score/top)*100);
-      const dot=e.active?'<span class="lb-active-dot"></span>':'';
-      return `<div class="lb-row${isMe?' me':''} ${rank<=3?'top'+rank:''}">
-        <span class="lb-rank ${rc}">${ri}</span>
-        <span class="lb-name${isMe?' me':''}">${esc(e.name)}${dot}</span>
-        <span class="lb-score">${(e.score||0).toLocaleString('no')}</span>
-        <div class="lb-bar" style="width:${bw}%"></div>
-      </div>`;
+      const bw=Math.round(((e.score||0)/top)*100);
+      return '<div class="lb-row'+(isMe?' me':'')+' '+(rank<=3?'top'+rank:'')+'">'
+        +'<span class="lb-rank '+rc+'">'+ri+'</span>'
+        +'<span class="lb-name'+(isMe?' me':'')+'">'+esc(e.name)+'<span class="lb-active-dot"></span></span>'
+        +'<span class="lb-score">'+((e.score||0).toLocaleString('no'))+'</span>'
+        +'<div class="lb-bar" style="width:'+bw+'%"></div>'
+        +'</div>';
     }).join('');
   }
 
-  function setLbStatus(text, error=false){
+  function setLbStatus(text,error){
     document.getElementById('lbFooter').textContent=text;
     document.getElementById('lbDot').className='lb-dot'+(error?' red':'');
   }
-
-  /* ── UI helpers ── */
   function updateMultiplierBadge(){
     const b=document.getElementById('multBadge');
     b.textContent='×'+multiplier;
     b.className='mult-badge'+(multiplier>1?' active':'');
   }
   function updateStreak(){ document.getElementById('streakDisplay').textContent='🔥 '+streak; }
-
   function showFloatScore(btn,text){
     const r=btn.getBoundingClientRect();
     const el=document.createElement('div'); el.className='float-score'; el.textContent=text;
     el.style.left=(r.left+r.width/2)+'px'; el.style.top=(r.top-10)+'px';
     document.body.appendChild(el); setTimeout(()=>el.remove(),1300);
   }
-
-  function showToast(text, type){
+  function showToast(text,type){
     const el=document.createElement('div'); el.className='toast '+type; el.textContent=text;
     document.body.appendChild(el); setTimeout(()=>el.remove(),1700);
   }
-
   function showGameOver(){
-    clearInterval(lbInterval);
+    if(sseConn){try{sseConn.close();}catch(e){} sseConn=null;}
     document.getElementById('finalScore').textContent=Math.floor(score).toLocaleString('no')+' poeng';
     const r=prevRank;
     document.getElementById('endSub').textContent=
-      r===1?'🥇 Du vant runden – utrolig bra!':
-      r===2?'🥈 2. plass – nesten på toppen!':
-      r===3?'🥉 3. plass – godt jobbet!':
-      'Du svarte feil 3 ganger – prøv igjen!';
+      r===1?'🥇 Du vant runden – utrolig bra!':r===2?'🥈 2. plass – nesten på toppen!':
+      r===3?'🥉 3. plass – godt jobbet!':'Du svarte feil 3 ganger – prøv igjen!';
     document.getElementById('endOverlay').classList.remove('hidden');
   }
-
   function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-  // Clean up on tab close
-  window.addEventListener('beforeunload', removePlayerFromDB);
+  window.addEventListener('beforeunload',()=>{ deletePlayer(); });
 </script>
 </body>
 </html>
