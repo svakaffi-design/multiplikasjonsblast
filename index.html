@@ -224,11 +224,14 @@
     updateMultiplierBadge(); updateStreak();
     tickInterval=setInterval(tick, 100);
     subscribeLeaderboard();
+    // Also poll as safety net in case SSE misses updates
+    clearInterval(lbInterval);
+    lbInterval=setInterval(fetchLeaderboardOnce, 2000);
+    fetchLeaderboardOnce();
     newQuestion();
   }
 
   function restartGame(){
-    removePlayerFromDB();
     startGame();
   }
 
@@ -342,18 +345,16 @@
         }catch(err){}
       });
       lbSSE.addEventListener('patch', e=>{
-        // Re-fetch on patch
         fetchLeaderboardOnce();
       });
       lbSSE.onerror=()=>{
         setLbStatus('Tilkoblingsfeil – prøver igjen…', true);
-        // Fallback to polling
         if(lbSSE){ lbSSE.close(); lbSSE=null; }
         clearInterval(lbInterval);
-        lbInterval=setInterval(fetchLeaderboardOnce, 3000);
+        lbInterval=setInterval(fetchLeaderboardOnce, 2000);
         fetchLeaderboardOnce();
       };
-      lbSSE.onopen=()=>{ setLbStatus('Live',false); };
+      lbSSE.onopen=()=>{ setLbStatus('Live',false); fetchLeaderboardOnce(); };
     }catch(e){
       // Fallback polling
       clearInterval(lbInterval);
@@ -380,10 +381,10 @@
       document.getElementById('lbSub').textContent='Venter på spillere…';
       return;
     }
-    const cutoff=Date.now()-30000;
+    const cutoff=Date.now()-300000; // 5 minutter
     const entries=Object.entries(data)
       .map(([key,v])=>({key,...v}))
-      .filter(e=>e.active||e.ts>cutoff)
+      .filter(e=>e.ts>cutoff)
       .sort((a,b)=>b.score-a.score);
     renderLeaderboard(entries);
     const active=entries.filter(e=>e.active).length;
