@@ -185,7 +185,6 @@
   let numA, numB, correctAnswer, answerLocked=false;
   let playerName='', playerId='';
   let prevRank=null;
-  let lbSSE=null; // Server-Sent Events listener
 
   /* ── Particles ── */
   const syms=['×','+','÷','=','²','∑','π','√'];
@@ -224,9 +223,6 @@
     updateMultiplierBadge(); updateStreak();
     tickInterval=setInterval(tick, 100);
     subscribeLeaderboard();
-    // Also poll as safety net in case SSE misses updates
-    clearInterval(lbInterval);
-    lbInterval=setInterval(fetchLeaderboardOnce, 2000);
     fetchLeaderboardOnce();
     newQuestion();
   }
@@ -332,35 +328,10 @@
     }catch(e){}
   }
 
-  // Use SSE (Server-Sent Events) for live updates from Firebase
   function subscribeLeaderboard(){
-    if(lbSSE){ lbSSE.close(); lbSSE=null; }
-    try{
-      lbSSE=new EventSource(`${FB_URL}${PLAYERS_PATH}.json`);
-      lbSSE.addEventListener('put', e=>{
-        try{
-          const data=JSON.parse(e.data);
-          if(data&&data.data) processLeaderboard(data.data);
-          else { document.getElementById('lbList').innerHTML='<div class="lb-empty">Ingen spillere ennå</div>'; }
-        }catch(err){}
-      });
-      lbSSE.addEventListener('patch', e=>{
-        fetchLeaderboardOnce();
-      });
-      lbSSE.onerror=()=>{
-        setLbStatus('Tilkoblingsfeil – prøver igjen…', true);
-        if(lbSSE){ lbSSE.close(); lbSSE=null; }
-        clearInterval(lbInterval);
-        lbInterval=setInterval(fetchLeaderboardOnce, 2000);
-        fetchLeaderboardOnce();
-      };
-      lbSSE.onopen=()=>{ setLbStatus('Live',false); fetchLeaderboardOnce(); };
-    }catch(e){
-      // Fallback polling
-      clearInterval(lbInterval);
-      lbInterval=setInterval(fetchLeaderboardOnce,3000);
-      fetchLeaderboardOnce();
-    }
+    // Simple polling only – reliable and no SSE conflicts
+    clearInterval(lbInterval);
+    lbInterval=setInterval(fetchLeaderboardOnce, 2500);
   }
 
   async function fetchLeaderboardOnce(){
@@ -369,7 +340,7 @@
       if(!res.ok) throw new Error('HTTP '+res.status);
       const data=await res.json();
       processLeaderboard(data);
-      setLbStatus('Polling · hvert 3s', false);
+      setLbStatus('Live · oppdateres hvert 2s', false);
     }catch(e){
       setLbStatus('Tilkoblingsfeil', true);
     }
@@ -443,7 +414,6 @@
   }
 
   function showGameOver(){
-    if(lbSSE){lbSSE.close();lbSSE=null;}
     clearInterval(lbInterval);
     document.getElementById('finalScore').textContent=Math.floor(score).toLocaleString('no')+' poeng';
     const r=prevRank;
