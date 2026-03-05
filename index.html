@@ -203,7 +203,7 @@
 
   function startGame(){
     score=0;streak=0;lives=3;multiplier=1;
-    currentRate=baseRate;boostActive=false;
+    currentRate=baseRate;boostActive=false;tickCount=0;
     clearTimeout(boostTimer);clearInterval(tickInterval);clearInterval(lbInterval);
     prevRank=null;
     document.getElementById('startOverlay').classList.add('hidden');
@@ -216,11 +216,13 @@
     newQuestion();
   }
 
+  let tickCount=0;
   function tick(){
     score+=currentRate*multiplier*0.1;
     document.getElementById('scoreDisplay').textContent=Math.floor(score).toLocaleString('no');
     document.getElementById('speedFill').style.width=Math.min(100,(currentRate/8)*100)+'%';
-    saveScore(false);
+    tickCount++;
+    if(tickCount%20===0) saveScore(false);
   }
 
   function newQuestion(){
@@ -288,16 +290,22 @@
     if(!playerName||!playerId)return;
     try{
       await window.storage.set(playerId,JSON.stringify({name:playerName,score:Math.floor(score),active:!final,ts:Date.now()}),true);
-    }catch(e){}
+    }catch(e){ console.warn('saveScore feil:',e); }
   }
 
   async function fetchLeaderboard(){
+    const statusEl=document.getElementById('lbFooter');
+    const subEl=document.getElementById('lbSub');
+    if(!window.storage){
+      statusEl.textContent='Storage ikke tilgjengelig';
+      return;
+    }
     try{
       const res=await window.storage.list('player-',true);
       if(!res||!res.keys||!res.keys.length){
         document.getElementById('lbList').innerHTML='<div class="lb-empty">Ingen spillere ennå</div>';
-        document.getElementById('lbSub').textContent='Del lenken for å konkurrere!';
-        document.getElementById('lbFooter').textContent='Venter på spillere…';
+        subEl.textContent='Del lenken for å konkurrere!';
+        statusEl.textContent='Venter på spillere…';
         return;
       }
       const entries=[];
@@ -305,16 +313,21 @@
       for(const key of res.keys){
         try{
           const r=await window.storage.get(key,true);
-          if(r&&r.value){const d=JSON.parse(r.value);if(d.active||d.ts>cutoff)entries.push({key,...d});}
-        }catch(e){}
+          if(r&&r.value){
+            const d=JSON.parse(r.value);
+            if(d.active||d.ts>cutoff) entries.push({key,...d});
+          }
+        }catch(e){ console.warn('get feil for',key,e); }
       }
       entries.sort((a,b)=>b.score-a.score);
       renderLeaderboard(entries);
       const active=entries.filter(e=>e.active).length;
-      document.getElementById('lbSub').textContent=
-        active===0?'Ingen aktive nå':active===1?'1 spiller aktiv nå':`${active} spillere aktive nå`;
-      document.getElementById('lbFooter').textContent='Live · oppdateres hvert 2s';
-    }catch(e){document.getElementById('lbFooter').textContent='Tilkoblingsfeil';}
+      subEl.textContent=active===0?'Ingen aktive nå':active===1?'1 spiller aktiv nå':`${active} spillere aktive nå`;
+      statusEl.textContent='Live · oppdateres hvert 2s';
+    }catch(e){
+      console.warn('fetchLeaderboard feil:',e);
+      statusEl.textContent='Tilkoblingsfeil – prøver igjen…';
+    }
   }
 
   function renderLeaderboard(entries){
