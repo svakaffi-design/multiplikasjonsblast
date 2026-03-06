@@ -30,7 +30,7 @@
   @keyframes flickerFire{from{text-shadow:0 0 10px var(--hot)}to{text-shadow:0 0 30px var(--hot),0 0 50px rgba(255,45,122,.5)}}
 
   /* Layout */
-  .app-layout{display:flex;align-items:flex-start;gap:18px;width:100%;max-width:1080px;padding:76px 16px 16px;min-height:100vh;justify-content:center;}
+  .app-layout{display:flex;align-items:flex-start;gap:18px;width:100%;max-width:1120px;padding:76px 16px 16px;min-height:100vh;justify-content:center;}
 
   /* Game col */
   .game-col{display:flex;flex-direction:column;align-items:center;gap:28px;flex:1;max-width:500px;min-width:280px;}
@@ -57,11 +57,14 @@
   .answer-btn.wrong{background:rgba(255,45,122,.15);border-color:var(--hot);color:var(--hot);}
   @keyframes correctBtn{0%{transform:scale(1)}40%{transform:scale(1.15)}70%{transform:scale(.95)}100%{transform:scale(1)}}
 
-  /* Leaderboard */
-  .leaderboard-col{width:255px;flex-shrink:0;background:var(--panel);border:1px solid rgba(0,245,212,.12);border-radius:24px;padding:18px 14px;box-shadow:0 0 40px rgba(0,245,212,.04);align-self:flex-start;position:sticky;top:76px;}
+  /* Right col (leaderboard + highscore) */
+  .right-col{width:255px;flex-shrink:0;display:flex;flex-direction:column;gap:14px;align-self:flex-start;position:sticky;top:76px;}
+
+  /* Leaderboard panel */
+  .lb-panel{background:var(--panel);border:1px solid rgba(0,245,212,.12);border-radius:24px;padding:18px 14px;box-shadow:0 0 40px rgba(0,245,212,.04);}
   .lb-title{font-family:'Fredoka One',cursive;font-size:1.15rem;color:var(--neon);text-shadow:0 0 10px var(--neon);margin-bottom:3px;text-align:center;}
   .lb-sub{font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.25);text-align:center;margin-bottom:14px;}
-  .lb-list{display:flex;flex-direction:column;gap:7px;min-height:60px;}
+  .lb-list{display:flex;flex-direction:column;gap:7px;min-height:40px;}
   .lb-row{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.05);position:relative;overflow:hidden;transition:background .3s;}
   .lb-row.me{background:rgba(0,245,212,.07);border-color:rgba(0,245,212,.25);box-shadow:0 0 15px rgba(0,245,212,.1);}
   .lb-row.top1{border-color:rgba(255,214,10,.35);background:rgba(255,214,10,.06);}
@@ -81,7 +84,29 @@
   .lb-dot{width:7px;height:7px;border-radius:50%;background:var(--neon);box-shadow:0 0 8px var(--neon);animation:blink 1.5s ease infinite;flex-shrink:0;}
   .lb-dot.red{background:var(--hot);box-shadow:0 0 8px var(--hot);}
   .lb-footer-text{font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.3);}
-  .lb-empty{font-size:.8rem;color:rgba(255,255,255,.25);text-align:center;padding:18px 0;}
+  .lb-empty{font-size:.8rem;color:rgba(255,255,255,.25);text-align:center;padding:12px 0;}
+
+  /* High score panel */
+  .hs-panel{background:var(--panel);border:1px solid rgba(255,214,10,.18);border-radius:24px;padding:18px 14px;box-shadow:0 0 40px rgba(255,214,10,.04);}
+  .hs-title{font-family:'Fredoka One',cursive;font-size:1.15rem;color:var(--gold);text-shadow:0 0 10px var(--gold);margin-bottom:3px;text-align:center;}
+  .hs-sub{font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.25);text-align:center;margin-bottom:14px;}
+  .hs-list{display:flex;flex-direction:column;gap:6px;min-height:40px;}
+  .hs-row{display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:12px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.04);position:relative;overflow:hidden;transition:background .4s;}
+  .hs-row.top1{border-color:rgba(255,214,10,.4);background:rgba(255,214,10,.07);}
+  .hs-row.top2{border-color:rgba(192,192,192,.22);}
+  .hs-row.top3{border-color:rgba(205,127,50,.22);}
+  .hs-row.hs-me{background:rgba(0,245,212,.06);border-color:rgba(0,245,212,.2);}
+  .hs-row.new-entry{animation:newEntryGlow .8s ease;}
+  @keyframes newEntryGlow{0%{background:rgba(255,214,10,.25);box-shadow:0 0 20px rgba(255,214,10,.4)}100%{background:rgba(255,255,255,.02)}}
+  .hs-rank{font-family:'Fredoka One',cursive;font-size:.9rem;width:22px;text-align:center;color:rgba(255,255,255,.3);}
+  .hs-rank.g{color:var(--gold);text-shadow:0 0 8px var(--gold);}
+  .hs-rank.s{color:#c0c0c0;}
+  .hs-rank.b{color:#cd7f32;}
+  .hs-name{font-size:.82rem;font-weight:900;color:rgba(255,255,255,.75);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;}
+  .hs-name.me{color:var(--neon);}
+  .hs-score{font-family:'Fredoka One',cursive;font-size:.9rem;color:var(--gold);text-align:right;min-width:42px;opacity:.85;}
+  .hs-bar{position:absolute;bottom:0;left:0;height:2px;background:linear-gradient(90deg,var(--gold),var(--hot));transition:width .6s ease;opacity:.3;}
+  .hs-empty{font-size:.8rem;color:rgba(255,255,255,.2);text-align:center;padding:12px 0;}
 
   /* Overlays */
   .overlay{position:fixed;inset:0;background:rgba(13,13,26,.96);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;z-index:500;backdrop-filter:blur(10px);}
@@ -103,7 +128,7 @@
   .toast{position:fixed;top:74px;left:50%;transform:translateX(-50%);font-family:'Fredoka One',cursive;font-size:1.7rem;padding:8px 24px;border-radius:50px;color:#fff;z-index:200;opacity:0;animation:toastAnim 1.5s ease forwards;pointer-events:none;}
   .toast.combo{background:var(--purple);box-shadow:0 0 40px rgba(123,47,255,.6);}
   .toast.rankup{background:var(--gold);color:#0d0d1a;font-size:1.4rem;box-shadow:0 0 40px rgba(255,214,10,.7);}
-  @keyframes toastAnim{0%{opacity:0;transform:translateX(-50%) translateY(-20px) scale(.8)}20%{opacity:1;transform:translateX(-50%) translateY(0) scale(1.05)}70%{opacity:1}100%{opacity:0;transform:translateX(-50%) translateY(-10px)}}
+  .toast.hsentry{background:linear-gradient(135deg,var(--gold),var(--hot));color:#0d0d1a;font-size:1.3rem;box-shadow:0 0 40px rgba(255,214,10,.7);}
 </style>
 </head>
 <body>
@@ -142,15 +167,27 @@
     <div class="answers" id="answersContainer"></div>
   </div>
 
-  <!-- Leaderboard -->
-  <div class="leaderboard-col">
-    <div class="lb-title">🏆 Ledertavle</div>
-    <div class="lb-sub" id="lbSub">Alle spillere · Live</div>
-    <div class="lb-list" id="lbList"><div class="lb-empty">Kobler til…</div></div>
-    <div class="lb-footer">
-      <div class="lb-dot" id="lbDot"></div>
-      <span class="lb-footer-text" id="lbFooter">Starter…</span>
+  <!-- Right column: active players + high score -->
+  <div class="right-col">
+
+    <!-- Active players (live leaderboard) -->
+    <div class="lb-panel">
+      <div class="lb-title">🏆 Ledertavle</div>
+      <div class="lb-sub" id="lbSub">Alle spillere · Live</div>
+      <div class="lb-list" id="lbList"><div class="lb-empty">Kobler til…</div></div>
+      <div class="lb-footer">
+        <div class="lb-dot" id="lbDot"></div>
+        <span class="lb-footer-text" id="lbFooter">Starter…</span>
+      </div>
     </div>
+
+    <!-- Top 10 high scores (includes inactive after 1 min) -->
+    <div class="hs-panel">
+      <div class="hs-title">⭐ Topp 10 High Score</div>
+      <div class="hs-sub" id="hsSub">Alle tiders beste</div>
+      <div class="hs-list" id="hsList"><div class="hs-empty">Ingen rekorder ennå</div></div>
+    </div>
+
   </div>
 </div>
 
@@ -175,6 +212,7 @@
 <script>
   const FB   = 'https://multiplikasjonsblast-default-rtdb.europe-west1.firebasedatabase.app';
   const PATH = '/players';
+  const INACTIVITY_MS = 60 * 1000; // 1 minute
 
   let score=0, streak=0, lives=3, multiplier=1;
   let baseRate=0.5, currentRate=0.5;
@@ -185,6 +223,11 @@
   let prevRank=null;
   let lbSnapshot={};
   let sseConn=null;
+
+  // High score list stored locally (persists in memory for the session;
+  // also read from Firebase /highscores node for cross-session persistence)
+  let highScores = []; // [{name, score, key, isMe}]
+  const HS_PATH = '/highscores';
 
   /* Particles */
   const syms=['×','+','÷','=','²','∑','π','√'];
@@ -206,6 +249,7 @@
     playerId='p_'+Date.now()+'_'+Math.random().toString(36).slice(2,6);
     document.getElementById('nameOverlay').classList.add('hidden');
     document.getElementById('hudPlayer').textContent='👤 '+playerName;
+    loadHighScores();
     startGame();
   }
 
@@ -283,13 +327,18 @@
     }
   }
 
-  /* Firebase REST */
+  /* Firebase REST – players */
   async function saveScore(final=false){
     if(!playerName||!playerId) return;
     try{
       await fetch(FB+PATH+'/'+playerId+'.json',{
         method:'PUT', headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({name:playerName,score:Math.floor(score),active:!final})
+        body:JSON.stringify({
+          name:playerName,
+          score:Math.floor(score),
+          active:!final,
+          lastSeen: Date.now()
+        })
       });
     }catch(e){ console.warn('save error',e); }
   }
@@ -299,7 +348,81 @@
     try{ await fetch(FB+PATH+'/'+playerId+'.json',{method:'DELETE'}); }catch(e){}
   }
 
-  /* Single SSE connection – maintain local snapshot */
+  /* High score Firebase helpers */
+  async function loadHighScores(){
+    try{
+      const res=await fetch(FB+HS_PATH+'.json');
+      const data=await res.json();
+      if(data){
+        highScores=Object.entries(data).map(([k,v])=>({key:k,...v}));
+      }
+      renderHighScores();
+    }catch(e){ console.warn('hs load error',e); }
+  }
+
+  async function submitHighScore(name, sc){
+    const hsId='hs_'+Date.now()+'_'+Math.random().toString(36).slice(2,6);
+    try{
+      await fetch(FB+HS_PATH+'/'+hsId+'.json',{
+        method:'PUT', headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({name, score:sc})
+      });
+      // Trim to top 10 in Firebase (best-effort: keep local authoritative for now)
+    }catch(e){ console.warn('hs save error',e); }
+    return hsId;
+  }
+
+  /**
+   * Check if this score qualifies for top 10 and handle submission.
+   * Called when a player goes inactive (game over) or after 1 min inactivity.
+   */
+  function trySubmitHighScore(name, sc, key){
+    const sorted=[...highScores].sort((a,b)=>b.score-a.score);
+    const cutoff=sorted.length>=10?sorted[9].score:0;
+    if(sc>cutoff){
+      const hsId=key||('hs_'+Date.now());
+      // Remove old entry by same key if re-submitting
+      highScores=highScores.filter(e=>e.key!==hsId);
+      highScores.push({key:hsId, name, score:sc, isMe:(key&&key===playerId)||name===playerName});
+      highScores.sort((a,b)=>b.score-a.score);
+      if(highScores.length>10) highScores=highScores.slice(0,10);
+      renderHighScores(hsId);
+      submitHighScore(name,sc);
+
+      // Show toast only for current player
+      if(name===playerName){
+        const rank=highScores.findIndex(e=>e.key===hsId)+1;
+        showToast('🌟 High score #'+rank+' på lista!','hsentry');
+      }
+    }
+  }
+
+  function renderHighScores(newKey=null){
+    const list=document.getElementById('hsList');
+    if(!highScores.length){
+      list.innerHTML='<div class="hs-empty">Ingen rekorder ennå</div>';
+      document.getElementById('hsSub').textContent='Alle tiders beste';
+      return;
+    }
+    const top=highScores[0]?.score||1;
+    document.getElementById('hsSub').textContent='Topp '+highScores.length+' · Alle tider';
+    list.innerHTML=highScores.slice(0,10).map((e,i)=>{
+      const rank=i+1;
+      const rc=rank===1?'g':rank===2?'s':rank===3?'b':'';
+      const ri=rank===1?'🥇':rank===2?'🥈':rank===3?'🥉':rank;
+      const bw=Math.round(((e.score||0)/top)*100);
+      const isMe=e.isMe||(e.name===playerName&&e.key===playerId);
+      const newCls=newKey&&e.key===newKey?' new-entry':'';
+      return '<div class="hs-row'+(rank<=3?' top'+rank:'')+(isMe?' hs-me':'')+newCls+'">'
+        +'<span class="hs-rank '+rc+'">'+ri+'</span>'
+        +'<span class="hs-name'+(isMe?' me':'')+'">'+esc(e.name)+'</span>'
+        +'<span class="hs-score">'+((e.score||0).toLocaleString('no'))+'</span>'
+        +'<div class="hs-bar" style="width:'+bw+'%"></div>'
+        +'</div>';
+    }).join('');
+  }
+
+  /* SSE – live leaderboard */
   function connectSSE(){
     if(sseConn){ try{sseConn.close();}catch(e){} sseConn=null; }
     setLbStatus('Kobler til…',false);
@@ -318,6 +441,7 @@
           if(msg.data===null){ delete lbSnapshot[key]; }
           else { lbSnapshot[key]=msg.data; }
         }
+        processInactivity();
         renderFromSnapshot();
         setLbStatus('● Sanntid',false);
       }catch(err){ console.warn('SSE put error',err); }
@@ -331,6 +455,7 @@
             if(v===null) delete lbSnapshot[k];
             else lbSnapshot[k]=Object.assign({},lbSnapshot[k],v);
           });
+          processInactivity();
           renderFromSnapshot();
         }
       }catch(err){}
@@ -342,6 +467,30 @@
       sseConn=null;
       setTimeout(connectSSE,3000);
     };
+  }
+
+  /**
+   * For each player in lbSnapshot:
+   * - If active=true but lastSeen is >1 min ago → mark as inactive,
+   *   move score to high score list, update Firebase.
+   */
+  function processInactivity(){
+    const now=Date.now();
+    Object.entries(lbSnapshot).forEach(([key,player])=>{
+      if(!player||player.active!==true) return;
+      const lastSeen=player.lastSeen||0;
+      if(now-lastSeen>INACTIVITY_MS){
+        // Mark inactive in snapshot immediately
+        lbSnapshot[key]=Object.assign({},player,{active:false});
+        // Push to high score
+        trySubmitHighScore(player.name, player.score||0, key);
+        // Update Firebase to reflect inactivity
+        fetch(FB+PATH+'/'+key+'.json',{
+          method:'PATCH', headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({active:false})
+        }).catch(()=>{});
+      }
+    });
   }
 
   function renderFromSnapshot(){
@@ -398,7 +547,11 @@
   }
   function showGameOver(){
     if(sseConn){try{sseConn.close();}catch(e){} sseConn=null;}
-    document.getElementById('finalScore').textContent=Math.floor(score).toLocaleString('no')+' poeng';
+    clearInterval(tickInterval);
+    const finalSc=Math.floor(score);
+    // Always try to submit to high score on game over
+    trySubmitHighScore(playerName, finalSc, playerId);
+    document.getElementById('finalScore').textContent=finalSc.toLocaleString('no')+' poeng';
     const r=prevRank;
     document.getElementById('endSub').textContent=
       r===1?'🥇 Du vant runden – utrolig bra!':r===2?'🥈 2. plass – nesten på toppen!':
@@ -408,6 +561,14 @@
   function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
   window.addEventListener('beforeunload',()=>{ deletePlayer(); });
+
+  // Periodically check for inactivity even without SSE push
+  setInterval(()=>{
+    if(Object.keys(lbSnapshot).length>0){
+      processInactivity();
+      renderFromSnapshot();
+    }
+  }, 15000);
 </script>
 </body>
 </html>
